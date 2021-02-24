@@ -37,6 +37,7 @@ steps:
       release: mse-project
       values: gate.image.tag=v${DRONE_BUILD_NUMBER}
       namespace: mse-ns
+      debug: true
       api_server:
         from_secret: staging_api_server
       kubernetes_token:
