@@ -1,0 +1,46 @@
+kind: pipeline
+type: docker
+name: default
+
+steps:
+  - name: compile
+    image: maven:3-jdk-11
+    commands:
+      - mvn compile
+  - name: test
+    image: maven:3-jdk-11
+    commands:
+      - mvn test
+  - name: package
+    image: maven:3-jdk-11
+    commands:
+      - mvn package -DskipTests
+  - name: docker
+    image: plugins/docker
+    settings:
+      repo: fmedisov/mse-gate
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_userpassword
+      dockerfile: Dockerfile-packaged
+      tags:
+        - latest
+        - v${DRONE_BUILD_NUMBER}
+  - name: deploy_staging
+    image: pelotech/drone-helm3
+    settings:
+      helm_command: upgrade
+      skip_tls_verify: true
+      add_repos: mse-repo=https://fmedisov.github.io/microservices-deploy/
+      chart: mse-repo/mse-chart
+      release: mse-project
+      values: gate.image.tag=v${DRONE_BUILD_NUMBER}
+      namespace: mse-ns
+      api_server:
+        from_secret: staging_api_server
+      kubernetes_token:
+        from_secret: staging_kubernetes_token
+trigger:
+  event:
+    - push
